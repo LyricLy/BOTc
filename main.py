@@ -44,8 +44,7 @@ def bulletin():
 
 def players():
     zone = get_zone()
-    # TODO: remove
-    return [ps[0] for channel in zone.channels if len(ps := [m for m in channel.members if m.get_role(PLAYER_ROLE_ID) and channel.name == (m.global_name or m.name).lower()]) == 1]
+    return [ps[0] for channel in zone.channels if len(ps := [m for m in channel.members if m.get_role(PLAYER_ROLE_ID)]) == 1]
 
 def is_player(member):
     return member.get_role(PLAYER_ROLE_ID)
@@ -458,9 +457,8 @@ class VotingPanel(discord.ui.View):
         await rerender_nomination(self.nom_pos)
         await interaction.response.defer()
 
-# TODO: fill out
-in_bulletin = commands.check(lambda _: True)
-is_storyteller = commands.check(lambda _: True)
+in_bulletin = commands.check(lambda ctx: bool(is_player(ctx.author)) and ctx.channel.name == "public-bulletin")
+is_storyteller = commands.has_permissions(administrator=True)
 
 @bot.command(aliases=["nom"])
 @in_bulletin
