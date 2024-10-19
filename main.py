@@ -122,7 +122,7 @@ def has_voted(nom_pos, player):
         return False
 
 def is_to_vote(nom_pos, player):
-    return data["to_vote"] is not None and nomination_players(nom_pos)[data["to_vote"]] == player
+    return is_current(nom_pos) and nomination_players(nom_pos)[data["to_vote"]] == player
 
 def seen_premove(nom_pos, player, to=None):
     if not can_vote(player):
@@ -169,7 +169,7 @@ def eval_votes(nom_pos, we_are=None, assume_abstains=frozenset()):
                 decision = user in prosp
 
         if has_voted(nom_pos, player):
-            nom["premoves"][str(player.id)]["result"] = decision
+            nom["premoves"].setdefault(str(player.id), {})["result"] = decision
 
         if decision:
             count += 1
@@ -179,7 +179,7 @@ def eval_votes(nom_pos, we_are=None, assume_abstains=frozenset()):
 
 def votes_necessary(before):
     return max([
-        (len(players()) + 1) // 2,
+        (sum(bool(is_alive(p)) for p in players()) + 1) // 2,
         *[len(eval_votes(nom_pos)) for nom_pos in range(before)],
     ])
 
@@ -187,35 +187,30 @@ def get_nominers(nom):
     guild = bot.get_guild(GUILD_ID)
     return guild.get_member(nom["nominator"]), guild.get_member(nom["nominee"])
 
-def will_vote(we, outside):
+def vote_complaint(we, outside):
+    if is_alive(we):
+        return None, False
     if not can_vote(we):
-        return {"type": "cannot"}
-    maybe = None
+        return "You have spent your vote token and cannot vote.", True
+    maybe_nom = None
+    maybe_premove = None
     for i, nom in enumerate(data["nominations"]):
         if i == outside:
             continue
         premoves = nom["premoves"].get(str(we.id), {"public": None, "private": None})
         premove = premoves["private"] or premoves["public"]
         if premove == {"type": "constant", "value": True}:
-            return {"type": "definitely", "where": nom}
+            _, nominee = get_nominers(nom)
+            msg_link = bulletin().get_partial_message(nom["message"]).jump_url
+            return f"You intend to use your vote token on {nominee.global_name or nominee.name} ({msg_link}), and you cannot vote multiple times.", True
         elif premove and premove != {"type": "constant", "value": False}:
-            maybe = {"where": nom, "premove": premove}
-    return {"type": "maybe", **maybe} if maybe else {"type": "no"}
-
-def will_vote_complaint(wv):
-    match wv:
-        case {"type": "cannot"}:
-            return "You have spent your vote token and cannot vote."
-        case {"type": "definitely", "where": other_nom}:
-            _, nominee = get_nominers(other_nom)
-            msg_link = bulletin().get_partial_message(other_nom["message"]).jump_url
-            return f"You intend to use your vote token on {nominee.global_name or nominee.name} ({msg_link}), and you cannot vote multiple times."
-        case {"type": "maybe", "where": other_nom, "premove": other_premove}:
-            _, nominee = get_nominers(other_nom)
-            msg_link = bulletin().get_partial_message(other_nom["message"]).jump_url
-            return f"You intend to {describe_premove(other_premove)} on {nominee.global_name or nominee.name} ({msg_link}). Keep in mind that you can only vote once."
-        case {"type": "no"}:
-            return "Keep in mind that you can only vote once."
+            maybe_nom = nom
+            maybe_premove = premove
+    if maybe_nom:
+        _, nominee = get_nominers(maybe_nom)
+        msg_link = bulletin().get_partial_message(maybe_nom["message"]).jump_url
+        return f"You intend to {describe_premove(maybe_premove)} on {nominee.global_name or nominee.name} ({msg_link}). Keep in mind that you can only vote once.", False
+    return "Keep in mind that you can only vote once.", False
 
 def render_nomination(pos, we_are=None):
     current = data["current_nomination"]
@@ -230,7 +225,7 @@ def render_nomination(pos, we_are=None):
     embed.set_footer(text=f"Nominated by {nominator.global_name or nominator.name}")
     if this_is_current:
         embed.colour = discord.Colour(0x178bff)
-        embed.description = f"{len(votes & set(players()[:pos]))} voted ({len(votes)} expected{AST}, {votes_necessary(current)} needed)"
+        embed.description = f"{len(votes & set(nomination_players(pos)[:to_vote]))} voted ({len(votes)} expected{AST}, {votes_necessary(current)} needed)"
     elif pos >= current:
         embed.colour = discord.Colour(0xfffa66)
         embed.description = f"{len(votes)} expected to vote{AST} ({votes_necessary(pos)} needed{AST})"
@@ -265,23 +260,29 @@ def render_nomination(pos, we_are=None):
         embed.add_field(name="Votes", value="\n".join(votes_field))
 
     if we_are and not is_alive(we_are) and not has_voted(pos, we_are):
-        status = will_vote_complaint(will_vote(we_are, pos))
-        embed.add_field(name="You are dead", value=status, inline=False)
+        embed.add_field(name="You are dead", value=vote_complaint(we_are, pos)[0], inline=False)
 
     return embed
 
 async def rerender_nomination(nom_pos):
     msg_id = data["nominations"][nom_pos]["message"]
     await bulletin().get_partial_message(msg_id).edit(embed=render_nomination(nom_pos))
-    for interaction, panel in voting_panels[msg_id]:
-        await interaction.edit_original_response(embed=render_nomination(nom_pos, we_are=interaction.user), view=panel.format_self())
+    panels = voting_panels[msg_id]
+    deads = []
+    for idx, (interaction, panel) in enumerate(panels):
+        try:
+            await interaction.edit_original_response(embed=render_nomination(nom_pos, we_are=interaction.user), view=panel.format_self())
+        except discord.HTTPException:
+            deads.append(idx)
+    for dead in deads[::-1]:
+        panels.pop(dead)
 
 class NominationView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
     async def interaction_check(self, interaction: discord.Interaction):
-        if interaction.user not in players():
+        if not is_player(interaction.user):
             await interaction.response.send_message("Hey, you're not a player!", ephemeral=True)
             return False
         return True
@@ -290,10 +291,10 @@ class NominationView(discord.ui.View):
         return discord.utils.find(lambda nom: nom[1]["message"] == interaction.message.id, enumerate(data["nominations"]))[0]
 
     async def quick_action(self, interaction, vote):
-        await interaction.response.defer()
         nom_pos = self.find_nom_pos(interaction)
         if has_voted(nom_pos, interaction.user):
             return await interaction.response.send_message("Your choice in this nomination is already locked in.", ephemeral=True)
+        await interaction.response.defer()
         data["nominations"][nom_pos]["premoves"][str(interaction.user.id)] = {"public": {"type": "constant", "value": vote}, "private": None}
         save()
         if is_to_vote(nom_pos, interaction.user):
@@ -310,9 +311,9 @@ class NominationView(discord.ui.View):
 
     @discord.ui.button(label="Quick vote", style=discord.ButtonStyle.red, custom_id="quick_vote")
     async def quick_vote(self, interaction, button):
-        wv = will_vote(interaction.user, self.find_nom_pos(interaction))
-        if wv["type"] in ("definitely", "cannot"):
-            return await interaction.response.send_message(will_vote_complaint(wv), ephemeral=True)
+        complaint, is_fatal = vote_complaint(interaction.user, self.find_nom_pos(interaction))
+        if is_fatal:
+            return await interaction.response.send_message(complaint, ephemeral=True)
         await self.quick_action(interaction, True)
 
     @discord.ui.button(label="Quick abstain", style=discord.ButtonStyle.blurple, custom_id="quick_abstain")
@@ -367,7 +368,7 @@ class VotingPanel(discord.ui.View):
             self.remove_item(self.conditional_select)
         if not can_vote(self.we_are):
             return self.clear_items()
-        if not is_alive(self.we_are) and will_vote(self.we_are, self.nom_pos)["type"] == "definitely":
+        if vote_complaint(self.we_are, self.nom_pos)[1]:
             self.vote_button.disabled = True
             self.conditional_select.disabled = True
         match premove:
@@ -467,6 +468,8 @@ async def nominate(ctx, target: discord.Member):
         return await ctx.send("🥱")
     if not is_alive(ctx.author):
         return await ctx.send("You are dead.")
+    if not is_player(target):
+        return await ctx.send("They aren't playing.")
 
     target_name = target.global_name or target.name
     bully = bulletin()
@@ -559,19 +562,19 @@ async def start(ctx):
 
 async def end_nomination():
     current = data["current_nomination"]
+    data["current_nomination"] += 1
+    data["to_vote"] = None
     votes = eval_votes(current)
+    save()
     for voter in votes:
         if not is_alive(voter):
             await spend_vote(voter)
     nominator, nominee = get_nominers(data["nominations"][current])
     people = "people" if len(votes) != 1 else "person"
-    msg = f"{nominator.global_name or nominator.name}'s nomination of {nominee.global_name or nominee.name} has concluded. {len(votes)} {people} voted."
+    msg = f"{nominee.global_name or nominee.name}'s nomination (by {nominator.mention}) has concluded. {len(votes)} {people} voted."
     if len(votes) > votes_necessary(current):
         msg += f" {nominee.global_name or nominee.name} is now about to die."
     await game_state().send(msg)
-    data["current_nomination"] += 1
-    data["to_vote"] = None
-    save()
     await rerender_nomination(current)
 
 @bot.command()
@@ -599,6 +602,7 @@ async def dusk(ctx):
     await ctx.message.add_reaction("👍")
 
 async def setup_hook():
+    await bot.load_extension("jishaku")
     bot.add_view(NominationView())
 
 bot.setup_hook = setup_hook
