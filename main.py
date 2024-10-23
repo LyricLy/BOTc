@@ -113,10 +113,9 @@ def is_current(nom_pos):
     return data["to_vote"] is not None and nom_pos == data["current_nomination"]
 
 def has_voted(nom_pos, player):
-    current = data["current_nomination"]
     if is_current(nom_pos):
         return data["to_vote"] > nomination_players(nom_pos).index(player)
-    elif nom_pos < current:
+    elif nom_pos < data["current_nomination"]:
         return True
     else:
         return False
@@ -125,13 +124,15 @@ def is_to_vote(nom_pos, player):
     return is_current(nom_pos) and nomination_players(nom_pos)[data["to_vote"]] == player
 
 def seen_premove(nom_pos, player, to=None):
+    premoves = data["nominations"][nom_pos]["premoves"].get(str(player.id))
+
+    if premoves and (result := premoves.get("result")) is not None:
+        return {"type": "constant", "value": result}
     if not can_vote(player):
         return {"type": "no_vote"}
-    premoves = data["nominations"][nom_pos]["premoves"].get(str(player.id))
+
     if not premoves:
         return None
-    if (result := premoves.get("result")) is not None:
-        return {"type": "constant", "value": result}
     if player == to or has_voted(nom_pos, player):
         return premoves["private"] or premoves["public"]
     else:
