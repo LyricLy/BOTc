@@ -586,6 +586,29 @@ async def skip(ctx):
 
 @bot.command()
 @is_storyteller
+async def force(ctx, who: discord.Member, vote: bool, on_whom: discord.Member = None):
+    if not is_player(who):
+        return await ctx.send("They aren't even playing, man...")
+    if not on_whom:
+        nom_pos = data["current_nomination"] - (not data["to_vote"])
+        if not 0 <= nom_pos < len(data["nominations"]):
+            return await ctx.send("No running or previous nomination to force on. To force on a future nomination, pass the nominee's name as the third parameter.")
+    else:
+        for nom_pos, nom in enumerate(data["nominations"]):
+            if nom["nominee"] == on_whom.id:
+                break
+        else:
+            return await ctx.send(f"No nomination of {on_whom.global_name or on_whom.name} found.")
+
+    data["nominations"][nom_pos]["premoves"][str(who.id)] = {"public": {"type": "constant", "value": vote}, "private": None}
+    save()
+    if is_to_vote(nom_pos, who):
+        await step_through()
+    else:
+        await rerender_nomination(nom_pos)
+
+@bot.command()
+@is_storyteller
 async def dawn(ctx):
     global data
     data = {"current_nomination": 0, "to_vote": None, "nominations": [], "is_night": False}
