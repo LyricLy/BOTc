@@ -601,12 +601,14 @@ async def force(ctx, who: discord.Member, vote: bool, on_whom: discord.Member = 
         else:
             return await ctx.send(f"No nomination of {on_whom.global_name or on_whom.name} found.")
 
-    data["nominations"][nom_pos]["premoves"][str(who.id)] = {"public": {"type": "constant", "value": vote}, "private": None}
+    data["nominations"][nom_pos]["premoves"][str(who.id)] = {"public": {"type": "constant", "value": vote}, "private": None, "result": vote}
     save()
+
     if is_to_vote(nom_pos, who):
         await step_through()
     else:
         await rerender_nomination(nom_pos)
+    await ctx.message.add_reaction("👍")
 
 @bot.command()
 @is_storyteller
