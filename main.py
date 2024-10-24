@@ -102,7 +102,10 @@ def describe_premove_past(premove, failed):
 
 def nomination_players(nom_pos):
     ps = players()
-    start = ([p.id for p in ps].index(data["nominations"][nom_pos]["nominee"]) + 1) % len(ps)
+    try:
+        start = ([p.id for p in ps].index(data["nominations"][nom_pos]["nominee"]) + 1) % len(ps)
+    except ValueError:
+        start = 0
     return ps[start:] + ps[:start]
 
 def nomination_players_before(nom_pos, player):
