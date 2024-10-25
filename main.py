@@ -49,6 +49,9 @@ def players():
 def is_player(member):
     return member.get_role(PLAYER_ROLE_ID)
 
+def is_executable_storyteller(member):
+    return member.get_role(EXECUTABLE_ROLE_ID)
+
 def is_alive(member):
     return member.get_role(ALIVE_ROLE_ID)
 
@@ -472,7 +475,7 @@ async def nominate(ctx, target: discord.Member):
         return await ctx.send("🥱")
     if not is_alive(ctx.author):
         return await ctx.send("You are dead.")
-    if not is_player(target):
+    if not is_player(target) and not is_executable_storyteller(target):
         return await ctx.send("They aren't playing.")
 
     target_name = target.global_name or target.name
