@@ -49,6 +49,7 @@ class Live(commands.Cog):
         storytellers = discord.utils.get(ctx.guild.roles, name="Storytellers")
         meeting_bot = discord.utils.get(ctx.guild.roles, name="Meeting Bot")
         players = discord.utils.get(ctx.guild.roles, name="Players")
+        alive = discord.utils.get(ctx.guild.roles, name="Alive")
 
         category = await ctx.guild.create_category(name="In game", position=1)
 
@@ -71,8 +72,20 @@ class Live(commands.Cog):
 
         for i, player in enumerate(people, start=1):
             await player.edit(nick=f"[{i}] {re.sub(r"^\[\d+\] ", "", player.display_name)}")
+            await player.add_roles(players, alive)
 
         await ctx.message.add_reaction("👍")
+
+    @commands.command()
+    async def gg(self, ctx):
+        players = discord.utils.get(ctx.guild.roles, name="Players")
+        alive = discord.utils.get(ctx.guild.roles, name="Alive")
+        dead_vote = discord.utils.get(ctx.guild.roles, name="Dead (can vote)")
+        dead_no_vote = discord.utils.get(ctx.guild.roles, name="Dead (can't vote)")
+        for member in ctx.guild.members:
+            await member.remove_roles(players, alive, dead_vote, dead_no_vote)
+            if member.nick is not None:
+                await member.edit(nick=re.sub(r"^\[\d+\] ", "", member.nick))
 
     @commands.command(aliases=["deconstruct"])
     async def destruct(self, ctx, category: discord.CategoryChannel):
