@@ -635,6 +635,7 @@ async def dusk(ctx):
 
 async def setup_hook():
     await bot.load_extension("jishaku")
+    await bot.load_extension("live")
     bot.add_view(NominationView())
 
 bot.setup_hook = setup_hook
