@@ -87,6 +87,7 @@ class Live(commands.Cog):
                 await member.remove_roles(players, alive, dead_vote, dead_no_vote)
             if member.nick is not None:
                 await member.edit(nick=re.sub(r"^\[\d+\] ", "", member.nick))
+        await ctx.message.add_reaction("👍")
 
     @commands.command(aliases=["deconstruct"])
     async def destruct(self, ctx, category: discord.CategoryChannel):
