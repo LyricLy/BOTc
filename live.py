@@ -85,8 +85,8 @@ class Live(commands.Cog):
         for member in ctx.guild.members:
             if players in member.roles:
                 await member.remove_roles(players, alive, dead_vote, dead_no_vote)
-            if member.nick is not None:
-                await member.edit(nick=re.sub(r"^\[\d+\] ", "", member.nick))
+            if member.nick is not None and (new_nick := re.sub(r"^\[\d+\] ", "", member.nick)) != member.nick:
+                await member.edit(nick=new_nick)
         await ctx.message.add_reaction("👍")
 
     @commands.command(aliases=["deconstruct"])
