@@ -83,7 +83,8 @@ class Live(commands.Cog):
         dead_vote = discord.utils.get(ctx.guild.roles, name="Dead (can vote)")
         dead_no_vote = discord.utils.get(ctx.guild.roles, name="Dead (can't vote)")
         for member in ctx.guild.members:
-            await member.remove_roles(players, alive, dead_vote, dead_no_vote)
+            if players in member.roles:
+                await member.remove_roles(players, alive, dead_vote, dead_no_vote)
             if member.nick is not None:
                 await member.edit(nick=re.sub(r"^\[\d+\] ", "", member.nick))
 
