@@ -8,6 +8,7 @@ CAN_SPEAK_AND_CREATE_THREADS = discord.PermissionOverwrite(
     send_messages_in_threads=True,
     create_public_threads=True,
     create_private_threads=True,
+    manage_threads=True,
     add_reactions=True,
 )
 CAN_SPEAK = discord.PermissionOverwrite(
