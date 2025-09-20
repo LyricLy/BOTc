@@ -98,7 +98,10 @@ class Live(commands.Cog):
             if players in member.roles:
                 await member.remove_roles(players, alive, dead_vote, dead_no_vote)
             if member.nick is not None and (new_nick := re.sub(r"^\[\d+\] ", "", member.nick)) != member.nick:
-                await member.edit(nick=new_nick)
+                try:
+                    await member.edit(nick=new_nick)
+                except discord.Forbidden:
+                    pass
         await ctx.message.add_reaction("👍")
 
     @commands.command(aliases=["deconstruct"])
