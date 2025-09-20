@@ -45,12 +45,18 @@ class Live(commands.Cog):
             await channel.edit(sync_permissions=True)
         await ctx.message.add_reaction("👍")
 
+    async def the_players_are(self, ctx, players):
+        role = discord.utils.get(ctx.guild.roles, name="Players")
+        alive = discord.utils.get(ctx.guild.roles, name="Alive")
+        for i, player in enumerate(players, start=1):
+            await player.edit(nick=f"[{i}] {re.sub(r"^\[\d+\] ", "", player.display_name)}")
+            await player.add_roles(role, alive)
+
     @commands.command()
     async def construct(self, ctx, *people: discord.Member):
         storytellers = discord.utils.get(ctx.guild.roles, name="Storytellers")
         meeting_bot = discord.utils.get(ctx.guild.roles, name="Meeting Bot")
         players = discord.utils.get(ctx.guild.roles, name="Players")
-        alive = discord.utils.get(ctx.guild.roles, name="Alive")
 
         category = await ctx.guild.create_category(name="In game", position=1)
 
@@ -71,10 +77,12 @@ class Live(commands.Cog):
         await category.create_text_channel("town-square", overwrites=bottom_2)
         await category.create_text_channel("peanut-gallery", overwrites={players: discord.PermissionOverwrite(view_channel=False)})
 
-        for i, player in enumerate(people, start=1):
-            await player.edit(nick=f"[{i}] {re.sub(r"^\[\d+\] ", "", player.display_name)}")
-            await player.add_roles(players, alive)
+        await self.the_players_are(ctx, people)
+        await ctx.message.add_reaction("👍")
 
+    @commands.command()
+    async def players(self, ctx, *people: discord.Member):
+        await self.the_players_are(ctx, people)
         await ctx.message.add_reaction("👍")
 
     @commands.command()
