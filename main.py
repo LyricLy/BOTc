@@ -19,6 +19,7 @@ bot = commands.Bot(
         members=True,
         messages=True,
         message_content=True,
+        reactions=True,
     ),
     max_messages=None,
     help_command=None,
