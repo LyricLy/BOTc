@@ -3,11 +3,12 @@ import discord
 from discord.ext import commands
 
 
-CAN_SPEAK_AND_CREATE_THREADS = discord.PermissionOverwrite(
+STORYTELLER = discord.PermissionOverwrite(
     send_messages=True,
     send_messages_in_threads=True,
     create_public_threads=True,
     create_private_threads=True,
+    manage_messages=True,
     manage_threads=True,
     add_reactions=True,
 )
@@ -64,12 +65,12 @@ class Live(commands.Cog):
         category = await ctx.guild.create_category(name="In game", position=0)
 
         top_2 = {
-            storytellers: CAN_SPEAK_AND_CREATE_THREADS,
+            storytellers: STORYTELLER,
             ctx.guild.default_role: CANNOT_SPEAK,
         }
         bottom_2 = {
-            storytellers: CAN_SPEAK_AND_CREATE_THREADS,
-            meeting_bot: CAN_SPEAK_AND_CREATE_THREADS,
+            storytellers: STORYTELLER,
+            meeting_bot: STORYTELLER,
             players: CAN_SPEAK,
             ctx.guild.default_role: CANNOT_SPEAK,
         }
