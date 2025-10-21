@@ -32,7 +32,7 @@ class Live(commands.Cog):
         self.bot = bot
 
     async def cog_check(self, ctx):
-        return await self.bot.is_owner(ctx.author)
+        return await self.bot.is_owner(ctx.author) or ctx.guild and any(role.name == "Storytellers" for role in ctx.author.roles)
 
     @commands.command()
     async def archive(self, ctx, category: discord.CategoryChannel, *, game_name):
