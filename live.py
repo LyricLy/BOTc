@@ -62,7 +62,8 @@ class Live(commands.Cog):
         meeting_bot = discord.utils.get(ctx.guild.roles, name="Meeting Bot")
         players = discord.utils.get(ctx.guild.roles, name="Players")
 
-        category = await ctx.guild.create_category(name="In game", position=0)
+        category = await ctx.guild.create_category(name="In game")
+        await category.move(beginning=True, offset=1)
 
         top_2 = {
             storytellers: STORYTELLER,
