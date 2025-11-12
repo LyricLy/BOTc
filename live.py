@@ -25,6 +25,9 @@ CANNOT_SPEAK = discord.PermissionOverwrite(
     add_reactions=False,
 )
 
+suspended_players = {1153755869071278213}
+
+
 class Live(commands.Cog):
     """Tools for livetext."""
 
@@ -47,6 +50,10 @@ class Live(commands.Cog):
         await ctx.message.add_reaction("👍")
 
     async def the_players_are(self, ctx, players):
+        for player in players:
+            if player.id in suspended_players:
+                await ctx.send(f"{player.name} is suspended.")
+
         role = discord.utils.get(ctx.guild.roles, name="Players")
         alive = discord.utils.get(ctx.guild.roles, name="Alive")
         for i, player in enumerate(players, start=1):
