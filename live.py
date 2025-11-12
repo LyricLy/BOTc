@@ -50,8 +50,9 @@ class Live(commands.Cog):
         role = discord.utils.get(ctx.guild.roles, name="Players")
         alive = discord.utils.get(ctx.guild.roles, name="Alive")
         for i, player in enumerate(players, start=1):
+            new_name = f"[{i}] {re.sub(r"^\[\d+\] ", "", player.display_name[max(len(player.display_name) + 5 - 32, 0):])}"
             try:
-                await player.edit(nick=f"[{i}] {re.sub(r"^\[\d+\] ", "", player.display_name)}")
+                await player.edit(nick=new_name)
             except discord.Forbidden:
                 pass
             await player.add_roles(role, alive)
