@@ -25,7 +25,7 @@ CANNOT_SPEAK = discord.PermissionOverwrite(
     add_reactions=False,
 )
 
-suspended_players = {1153755869071278213}
+suspended_players = {}
 
 
 class Live(commands.Cog):
