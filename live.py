@@ -121,17 +121,21 @@ class Live(commands.Cog):
         await category.delete()
         await ctx.message.add_reaction("👍")
 
+    @staticmethod
+    def which_role(payload, roles):
+        return discord.utils.get(roles, name="Jackbox Ping") if payload.emoji.name == "📦" else discord.utils.get(roles, name="Queue Ping")
+
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         if payload.message_id == 1419689462413398158:
             member = payload.member
-            await    member.add_roles(discord.utils.get(member.guild.roles, name="Queue Ping"))
+            await member.add_roles(self.which_role(payload, member.guild.roles))
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         if payload.message_id == 1419689462413398158:
             member = self.bot.get_guild(payload.guild_id).get_member(payload.user_id)
-            await member.remove_roles(discord.utils.get(member.guild.roles, name="Queue Ping"))
+            await member.remove_roles(self.which_role(payload, member.guild.roles))
 
 
 async def setup(bot):
