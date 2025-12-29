@@ -197,10 +197,10 @@ class Live(commands.Cog):
         filename = f"{category.created_at.strftime('%Y-%m-%d-%H-%M')}-{name.replace('/', '')}.html"
         with open(f"logs/{filename}", "wb") as f:
             f.write(page)
-        # try:
-        #     await ctx.send(file=discord.File(io.BytesIO(page), filename=filename))
-        # except discord.HTTPException:
-        #     await ctx.send("Log too large to send, but it has been saved.")
+        try:
+            await ctx.send(file=discord.File(io.BytesIO(page), filename=filename))
+        except discord.HTTPException:
+            await ctx.send("Log too large to send, but it has been saved.")
 
     @commands.command()
     async def archive(self, ctx, category: discord.CategoryChannel, *, game_name):
@@ -232,7 +232,7 @@ class Live(commands.Cog):
     @commands.command()
     async def construct(self, ctx, *people: discord.Member):
         storytellers = discord.utils.get(ctx.guild.roles, name="Storytellers")
-        meeting_bot = discord.utils.get(ctx.guild.roles, name="Meeting Bot")
+        meeting_bot = discord.utils.get(ctx.guild.roles, name="Thread Control")
         players = discord.utils.get(ctx.guild.roles, name="Players")
 
         category = await ctx.guild.create_category(name="In game")
