@@ -31,7 +31,7 @@ class Fun(commands.Cog):
     async def pick_random_message(self):
         channel = self.bot.get_channel(config.HWDYK_CHANNEL_ID)
 
-        t = channel.created_at + datetime.timedelta(milliseconds=random.randint(0, int((datetime.datetime.now(datetime.timezone.utc) - channel.created_at).total_seconds() * 1000)))
+        t = channel.created_at + (datetime.datetime.now(datetime.timezone.utc) - channel.created_at) * random.random()
         async for message in channel.history(before=t):
             if not message.webhook_id and message.content and message.content.count(" ") > 3 and message.author in message.guild.members:
                 break
