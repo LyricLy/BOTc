@@ -28,9 +28,7 @@ class Fun(commands.Cog):
     def cog_check(self, ctx):
         return ctx.guild and ctx.guild.id == config.FUN_GUILD_ID
 
-    async def pick_random_message(self):
-        channel = self.bot.get_channel(config.HWDYK_CHANNEL_ID)
-
+    async def pick_random_message(self, channel):
         t = channel.created_at + (datetime.datetime.now(datetime.timezone.utc) - channel.created_at) * random.random()
         ms = [m async for m in channel.history(around=t)]
         random.shuffle(ms)
@@ -45,7 +43,9 @@ class Fun(commands.Cog):
     async def hwdyk(self, ctx):
         """Pick a random message. If you can guess who sent it, you win!"""
 
-        message = await self.pick_random_message()
+        channel = self.bot.get_channel(config.HWDYK_CHANNEL_ID)
+        special_channel = self.bot.get_channel(config.HWDYK_SPECIAL_CHANNEL_ID)
+        message = await self.pick_random_message(channel if getattr(ctx.channel, "parent", ctx.channel) != special_channel or random.random() > 0.05 else special_channel)
         real_embed = message_embed(message)
         hidden_embed = real_embed.copy()
         hidden_embed.set_footer(text="#??? • ??/??/????")
