@@ -635,7 +635,7 @@ async def dusk(ctx):
     await ctx.message.add_reaction("👍")
 
 async def setup_hook():
-    for ext in ["jishaku", "live", "fun"]:
+    for ext in ["jishaku", "live"]:
         await bot.load_extension(ext)
     bot.add_view(NominationView())
 
